@@ -23,22 +23,25 @@ public class WeatherService {
 	private final WeatherRecordRepository weatherRecordRepository;
 
     public void createOrder(OrderRequest request) {
-        jobScheduler.enqueue(() -> fetchWeather(request.city()));
+        String city = request.city();
+        jobScheduler.enqueue(() -> fetchWeather(city));
     }
 
-	private void fetchWeather(String city) {
-		RawWeatherData data = openWeatherClient.fetchCurrentWeather(city);
+	public void fetchWeather(String city) {
+        log.info("Start fetching weather data for city {}", city);
 
-		WeatherRecord record = WeatherRecord.builder()
-				.city(data.city())
-				.temperature(data.temperature())
-				.humidity(data.humidity())
-				.description(data.description())
-				.fetchedAt(data.observedAt().atZone(ZoneOffset.UTC).toLocalDateTime())
-				.build();
-		WeatherRecord saved = weatherRecordRepository.save(record);
+        RawWeatherData data = openWeatherClient.fetchCurrentWeather(city);
 
-		log.info(
+        WeatherRecord record = WeatherRecord.builder()
+                .city(data.city())
+                .temperature(data.temperature())
+                .humidity(data.humidity())
+                .description(data.description())
+                .fetchedAt(data.observedAt().atZone(ZoneOffset.UTC).toLocalDateTime())
+                .build();
+        WeatherRecord saved = weatherRecordRepository.save(record);
+
+        log.info(
             "Persisted weather data for city '{}': record id={}, temp={}, humidity={}, description={}", 
             city, saved.getId(), saved.getTemperature(), saved.getHumidity(), saved.getDescription()
         );
