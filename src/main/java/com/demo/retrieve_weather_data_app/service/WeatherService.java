@@ -1,11 +1,15 @@
 package com.demo.retrieve_weather_data_app.service;
 
+import java.time.Duration;
 import java.time.ZoneOffset;
 
 import org.jobrunr.scheduling.JobScheduler;
+import org.jobrunr.scheduling.cron.Cron;
 import org.springframework.stereotype.Service;
 
 import com.demo.retrieve_weather_data_app.controller.dto.OrderRequest;
+import com.demo.retrieve_weather_data_app.controller.dto.RecurringOrderRequest;
+import com.demo.retrieve_weather_data_app.controller.dto.ScheduleOrderRequest;
 import com.demo.retrieve_weather_data_app.external.OpenWeatherClient;
 import com.demo.retrieve_weather_data_app.external.RawWeatherData;
 import com.demo.retrieve_weather_data_app.model.entity.WeatherRecord;
@@ -25,6 +29,22 @@ public class WeatherService {
     public void createOrder(OrderRequest request) {
         String city = request.city();
         jobScheduler.enqueue(() -> fetchWeather(city));
+    }
+
+    public void createScheduledOrder(ScheduleOrderRequest request) {
+        String recurringJobId = "daily" + request.city() + request.time().toString().replace(":", "");
+        jobScheduler.scheduleRecurrently(
+                recurringJobId,
+                Cron.daily(request.time().getHour(), request.time().getMinute()),
+                () -> fetchWeather(request.city()));
+    }
+
+    public void createRecurringOrder(RecurringOrderRequest request) {
+        String recurringJobId = "recurring" + request.city() + request.intervalHours();
+        jobScheduler.scheduleRecurrently(
+                recurringJobId,
+                Duration.ofHours(request.intervalHours()),
+                () -> fetchWeather(request.city()));
     }
 
 	public void fetchWeather(String city) {
